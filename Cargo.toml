@@ -1,0 +1,7 @@
+[workspace]
+members = [ "backends/atmega328p-backend", "backends/riscv64-backend", "jac-atmega328p", "jac-riscv", "jihex"]
+resolver = "2"
+
+[workspace.dependencies]
+thiserror = "2.0.17"
+jihex.path = "jihex/"
