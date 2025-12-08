@@ -1,33 +1,6 @@
 use std::fmt::Write;
 use thiserror::Error;
 
-#[derive(Debug)]
-pub enum Endianness {
-    LittleEndian,
-    BigEndian,
-}
-
-trait Encode<T> {
-    fn encode(&self, n: T) -> Vec<u8>;
-}
-
-macro_rules! num_impl {
-    ($($n: ident)*) => {
-        $(
-            impl Encode<$n> for Endianness {
-                fn encode(&self, n: $n) -> Vec<u8> {
-                    match self {
-                        Endianness::LittleEndian => n.to_le_bytes().to_vec(),
-                        Endianness::BigEndian => n.to_le_bytes().to_vec(),
-                    }
-                }
-            }
-        )*
-    }
-}
-
-num_impl! { u16 u32 u64 }
-
 pub struct Code(pub Vec<Record>);
 
 impl Code {
@@ -55,7 +28,6 @@ impl Code {
     fn process(&self, address: &mut u16) -> Vec<RecordData> {
         self.0.iter().map(|v| RecordData::new(v, address)).collect()
     }
-    // who in hell gonna use write_async(?
 }
 
 pub enum Record {
@@ -79,13 +51,20 @@ impl RecordData {
     // takes a high level and return a low level record
     fn new(record: &Record, address: &mut u16) -> Self {
         match record {
-            Record::ExtendedSegmentAddress(a) => RecordData {
-                size: 0x02,
-                address: 0,
-                record_type: 0x2,
-                data: &[0x0, 0x0],
-                checksum: 0xFC,
-            },
+            Record::ExtendedSegmentAddress(a) => {
+                let record = RecordData {
+                    size: 0x02,
+                    address: *a,
+                    record_type: 0x2,
+                    data: &[0x0, 0x0],
+                    checksum: 0x0,
+                };
+
+                RecordData {
+                    checksum: checksum(&record),
+                    ..record
+                }
+            }
             Record::Data(d) => {
                 let size: u8 = d.len().try_into().unwrap();
                 *address += size as u16;
@@ -103,7 +82,6 @@ impl RecordData {
                 }
             }
             Record::Eof => {
-                // I'm hardcoding the checksum because is always static values and is always the same checksum
                 let a = RecordData {
                     size: 0,
                     address: 0,
