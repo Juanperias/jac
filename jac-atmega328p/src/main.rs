@@ -1,6 +1,30 @@
+// the opcodes need to be encoded in le bytes
+mod backend;
+mod frontend;
+
+use bit_field::BitField;
 use jihex::{Code, Record};
 
+use crate::backend::encode::encode;
+
 fn main() {
+    let a = "
+        ldi r16, 255
+    ";
+    
+    let program = frontend::parser::program(a).unwrap();
+    
+    for i in &program.0 {
+        println!("{:?}", encode(i.clone()));
+    }
+
+    let imm = 0xff_u8;
+    let opcode: u16 =
+        (0b1110 << 12) | ((imm as u16 & 0xF0) << 4) | ((0 as u8) << 4) as u16 | (imm as u16 & 0x0F);
+    println!("{:04X}", opcode);
+
+    println!("{:?}", program);
+
     let mut s = String::new();
 
     let code = Code(vec![
